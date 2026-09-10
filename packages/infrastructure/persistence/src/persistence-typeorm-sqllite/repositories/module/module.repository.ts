@@ -432,6 +432,26 @@ export class TypeOrmModuleRepository implements ModuleRepository {
     );
   }
 
+  async updateParentId(
+    moduleSystemId: number,
+    parentSubsystemSystemId: number | null,
+    options?: EditOptions,
+  ): Promise<void> {
+    const {session, groupId} = this.uow.getWriteContext();
+    await this.writer.writeDelta(
+      {
+        targetTable: ENTITY_NAMES.Node,
+        targetSystemId: moduleSystemId,
+        aggregateId: moduleSystemId,
+        delta: {parentId: parentSubsystemSystemId},
+        ...options,
+      },
+      session.sessionId,
+      groupId,
+      this.manager,
+    );
+  }
+
   async createModule(module: SpfModule, options?: EditOptions): Promise<void> {
     const {session, groupId} = this.uow.getWriteContext();
     const fileSystemId = module.fileSystemId;

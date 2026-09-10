@@ -65,4 +65,26 @@ export class NodeOverlayFetcher {
       .applyToCollection(baseRows, actions)
       .map(r => r.effective);
   }
+
+  async fetchAll(
+    fileSystemId: number,
+    sessionId: number | null,
+  ): Promise<NodeBase[]> {
+    const baseRows = (await this.manager
+      .getRepository<NodeRow>(ENTITY_NAMES.Node)
+      .createQueryBuilder('n')
+      .select(['n.systemId', 'n.parentId', 'n.type', 'n.fileSystemId'])
+      .where('n.fileSystemId = :fileSystemId', {fileSystemId})
+      .getMany()) as NodeBase[];
+
+    if (sessionId === null) return baseRows;
+
+    const actions = await this.editActionsSvc.getByTable(
+      sessionId,
+      ENTITY_NAMES.Node,
+    );
+    return actions.length === 0
+      ? baseRows
+      : this.overlay.applyToCollection(baseRows, actions).map(r => r.effective);
+  }
 }

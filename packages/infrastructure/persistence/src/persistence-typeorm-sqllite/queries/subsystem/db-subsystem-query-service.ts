@@ -15,6 +15,8 @@ import type {EditActionsQueryService} from '../edit-session/edit-actions-query-s
 import {resolveActiveSessionId} from '../shared/session-resolver.js';
 import {UseCaseQueryMappers} from '../usecase/usecase-query-mappers.js';
 import {SubsystemOverlayFetcher} from '../../fetchers/subsystem-overlay-fetcher.js';
+import {PortOverlayFetcher} from '../../fetchers/port-overlay-fetcher.js';
+import {IntentFetcher} from '../../fetchers/intent-fetcher.js';
 import {ENTITY_NAMES} from '../../entity-schema/entity-table-names.js';
 import {OverlayMergeImpl} from '../../queries/edit-session/overlay-merge.js';
 import type {ControlLinkBase} from '../../entity-schema/usecase-data/Links/control-link.js';
@@ -28,6 +30,7 @@ import type {DataLinkBase} from '../../entity-schema/usecase-data/Links/data-lin
  */
 export class DbSubsystemQueryService implements SubsystemQueryService {
   private readonly subsystemFetcher: SubsystemOverlayFetcher;
+  private readonly portFetcher: PortOverlayFetcher;
   private readonly overlayMerge = new OverlayMergeImpl();
 
   constructor(
@@ -37,6 +40,11 @@ export class DbSubsystemQueryService implements SubsystemQueryService {
     this.subsystemFetcher = new SubsystemOverlayFetcher(
       dataSource.manager,
       editActionsQuerySvc,
+    );
+    this.portFetcher = new PortOverlayFetcher(
+      dataSource.manager,
+      editActionsQuerySvc,
+      new IntentFetcher(dataSource.manager, editActionsQuerySvc),
     );
   }
 
@@ -51,14 +59,52 @@ export class DbSubsystemQueryService implements SubsystemQueryService {
         sessionId,
       );
 
-      return Result.ok(
-        subsystems.map(s => ({
-          systemId: s.systemId,
-          name: s.name,
-          parentId: s.parentId,
-          filteredKeys: [], // TODO: load from SubsystemFilteredKey when filtered-by-subsystem is implemented
-        })),
+      const data = await Promise.all(
+        subsystems.map(async s => {
+          const [dataPorts, controlPorts, childSubgraphs] = await Promise.all([
+            this.portFetcher.fetchDataPorts(
+              s.systemId,
+              fileSystemId,
+              sessionId,
+            ),
+            this.portFetcher.fetchControlPortsWithIntents(
+              s.systemId,
+              fileSystemId,
+              sessionId,
+            ),
+            this.findDirectChildSubgraphIds(s.systemId, fileSystemId),
+          ]);
+          return {
+            systemId: s.systemId,
+            naturalId: s.subsystemId,
+            name: s.name,
+            parentId: s.parentId,
+            subgraphSystemIds: childSubgraphs,
+            filteredKeys: [], // TODO: load from SubsystemFilteredKey when filtered-by-subsystem is implemented
+            dataPorts: dataPorts.map(port => ({
+              systemId: port.systemId,
+              portId: port.dataPortId,
+              name: port.name ?? '',
+              portIoType: port.portIoType,
+              isStatic: port.isStatic,
+              totalLinksAtPort: 0,
+            })),
+            controlPorts: controlPorts.map(port => ({
+              systemId: port.systemId,
+              portId: port.portId,
+              name: port.name ?? '',
+              isStatic: port.isStatic,
+              allocatedIntents: port.intents.map(intent => ({
+                systemId: intent.systemId,
+                intentId: intent.intentId,
+                name: '',
+              })),
+              totalLinksAtPort: 0,
+            })),
+          };
+        }),
       );
+      return Result.ok(data);
     } catch (error) {
       return Result.fail(
         IssueFactory.dbError(
@@ -66,6 +112,23 @@ export class DbSubsystemQueryService implements SubsystemQueryService {
         ),
       );
     }
+  }
+
+  private async findDirectChildSubgraphIds(
+    subsystemSystemId: number,
+    fileSystemId: number,
+  ): Promise<number[]> {
+    const rows: Array<{subgraphSystemId: number}> =
+      await this.dataSource.manager
+        .createQueryBuilder()
+        .select('m.subgraph_system_id', 'subgraphSystemId')
+        .from('nodes', 'n')
+        .innerJoin('spf_modules', 'm', 'm.system_id = n.system_id')
+        .where('n.parent_id = :subsystemSystemId', {subsystemSystemId})
+        .andWhere('n.file_system_id = :fileSystemId', {fileSystemId})
+        .distinct(true)
+        .getRawMany();
+    return rows.map(row => Number(row.subgraphSystemId));
   }
 
   /**

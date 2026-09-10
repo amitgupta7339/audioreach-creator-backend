@@ -2917,7 +2917,7 @@
                       [
                         {
                           "systemId": "1",
-                          "usecaseType": "Regular",
+                          "usecaseType": "LINKED",
                           "gkv": {
                             "systemId": "1",
                             "keyValuePairs": [
@@ -2965,7 +2965,7 @@
                         },
                         {
                           "systemId": "2",
-                          "usecaseType": "Regular",
+                          "usecaseType": "LINKED",
                           "gkv": {
                             "systemId": "2",
                             "keyValuePairs": [
@@ -6875,7 +6875,7 @@
                       [
                         {
                           "systemId": "1",
-                          "usecaseType": "Regular",
+                          "usecaseType": "LINKED",
                           "gkv": {
                             "systemId": "1",
                             "keyValuePairs": [
@@ -6923,7 +6923,7 @@
                         },
                         {
                           "systemId": "2",
-                          "usecaseType": "Regular",
+                          "usecaseType": "LINKED",
                           "gkv": {
                             "systemId": "2",
                             "keyValuePairs": [
@@ -7608,7 +7608,7 @@
       },
       "delete": {
         "description": "Deletes the specified subsystem. The subsystem must have no child components or nested subsystems.\n\nReturns the removed subsystem.",
-        "operationId": "SubsystemController_removeSubsystem",
+        "operationId": "SubsystemController_deleteSubsystem",
         "parameters": [
           {
             "name": "projectId",
@@ -11699,7 +11699,9 @@
                   "type": "string",
                   "enum": [
                     "Input",
-                    "Output"
+                    "Output",
+                    "InputOutput",
+                    "OutputInput"
                   ],
                   "description": "Port IO type"
                 },
@@ -11944,7 +11946,9 @@
                         "type": "string",
                         "enum": [
                           "Input",
-                          "Output"
+                          "Output",
+                          "InputOutput",
+                          "OutputInput"
                         ],
                         "description": "Port IO type"
                       },
@@ -12335,7 +12339,9 @@
                   "type": "string",
                   "enum": [
                     "Input",
-                    "Output"
+                    "Output",
+                    "InputOutput",
+                    "OutputInput"
                   ],
                   "description": "Port IO type"
                 },
@@ -12548,7 +12554,9 @@
                         "type": "string",
                         "enum": [
                           "Input",
-                          "Output"
+                          "Output",
+                          "InputOutput",
+                          "OutputInput"
                         ],
                         "description": "Port IO type"
                       },
@@ -13366,9 +13374,9 @@
             "type": "string",
             "description": "Type of the usecase",
             "enum": [
-              "CONNECTED",
-              "DISCONNECTED",
-              "EC"
+              "EC",
+              "LINKED",
+              "ISLAND"
             ]
           },
           "categories": {
@@ -14716,7 +14724,9 @@
                   "type": "string",
                   "enum": [
                     "Input",
-                    "Output"
+                    "Output",
+                    "InputOutput",
+                    "OutputInput"
                   ],
                   "description": "Port IO type"
                 },
@@ -15596,41 +15606,6 @@
           "Tkv"
         ]
       },
-      "ParameterSummaryDto": {
-        "type": "object",
-        "properties": {
-          "elements": {
-            "type": "array",
-            "items": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/ConfigElementSummaryDto"
-                },
-                {
-                  "$ref": "#/components/schemas/ElementTemplateArraySummaryDto"
-                },
-                {
-                  "$ref": "#/components/schemas/StructSummaryDto"
-                }
-              ]
-            },
-            "description": "Elements to write"
-          },
-          "systemId": {
-            "type": "string",
-            "description": "System identifier (parameter system ID)"
-          },
-          "name": {
-            "type": "string",
-            "description": "Parameter name"
-          }
-        },
-        "required": [
-          "elements",
-          "systemId",
-          "name"
-        ]
-      },
       "UpdateTkvRequestDto": {
         "type": "object",
         "properties": {
@@ -15642,8 +15617,8 @@
             }
           },
           "uiPersistence": {
-            "description": "UI persistence string",
-            "type": "string"
+            "type": "string",
+            "description": "UI persistence string"
           }
         },
         "required": [
@@ -16571,6 +16546,41 @@
           "value"
         ]
       },
+      "ParameterSummaryDto": {
+        "type": "object",
+        "properties": {
+          "elements": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ConfigElementSummaryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/ElementTemplateArraySummaryDto"
+                },
+                {
+                  "$ref": "#/components/schemas/StructSummaryDto"
+                }
+              ]
+            },
+            "description": "Elements to write"
+          },
+          "systemId": {
+            "type": "string",
+            "description": "System identifier (parameter system ID)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Parameter name"
+          }
+        },
+        "required": [
+          "elements",
+          "systemId",
+          "name"
+        ]
+      },
       "PropertySummaryDto": {
         "type": "object",
         "properties": {
@@ -17345,7 +17355,9 @@
                         "type": "string",
                         "enum": [
                           "Input",
-                          "Output"
+                          "Output",
+                          "InputOutput",
+                          "OutputInput"
                         ],
                         "description": "Port IO type"
                       },
